@@ -315,23 +315,35 @@ class BOARD extends Basic
                 $singleSelect,
                 $ifListForExport
             );
-
+			
             $sql = $create_new_list_query['select'] . $create_new_list_query['from'] . $create_new_list_query['where'] . $create_new_list_query['order_by'];
             $sql = $sql . "\n {$LIMIT}";
             $result = $db->query($sql, 1);
             $data = [];
+			
             while ($row = $db->fetchByAssoc($result)) {
                 $name = '';
+				$dataName = array();
+				$headerFields = $this->bordConfModule->mainFields;
                 foreach ($this->bordConfModule->mainFields as $key => $fieldName) {
-                    if (!empty($row[$fieldName])) {
-                        $name .= ' ' . $row[$fieldName];
+                    
+					if (!empty($row[$fieldName])) {
+                        $name .= '/' . $row[$fieldName];
                     } else {
                         $name .= '';
                     }
+					
+					$array = array(
+						'name' => $row[$fieldName], 
+						'fieldName' => $fieldName
+					);
+					array_push($dataName, $array);
+					
                 }
                 $data[$row[$this->bordConfModule->stages_field]][] = [
                     'id' => $row['id'],
-                    'beanCardName' => $name,
+					'headerFields' => $headerFields,
+                    'beanCardName' => $dataName,
                     'stage' => $row[$this->bordConfModule->stages_field],
                 ];
             }

@@ -1,7 +1,6 @@
 <link rel="stylesheet" href="custom/include/lib/jkanban/jkanban.min.css" />
 <script src="custom/include/lib/jkanban/jkanban.min.js"></script>
 <div id="myKanban"></div>
-]
 
 <div id="MyModal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -19,6 +18,7 @@
 </div>
 
 <script>
+
     {literal}
     function loadmodalbody(id) {
         $("#iframemodal").attr("src" , 'index.php?module=' + {/literal}'{$RECIPIENT_MODULE}'{literal} + '&hiddenMenu=1&action=DetailView&record='+id);
@@ -54,13 +54,11 @@
         widthBoard: "250px",
         dragBoards: false,
         itemHandleOptions:{
-            enabled: true,
+            enabled: false,
         },
         click: function(el) {
             var id = el.getAttribute('data-idopp');
-            $('#MyModal').modal();
-            loadmodalbody(id);
-
+      
         },
         dropEl: function(el, target, source, sibling){
             var id = el.getAttribute('data-idopp');
@@ -100,12 +98,8 @@
         boards: bordValue
     });
 
-
-
-
-
-
     $(document).ready(function () {
+	
         if(countRecord < 100){
             getAllStage();
         }
@@ -138,10 +132,41 @@
     function setItems(data) {
         for (var key in data) {
             for (index = 0; index < data[key].length; ++index) {
-                KanbanTest.addElement("_" + key.replace(/\s+/g, ''),{
-                    title:"<p>"+data[key][index]['beanCardName']+"</p>",
-                    idopp:data[key][index]['id'],
-                });
+				var title = "";
+				var account = [];
+				
+				var isShowAccountLinks = data[key][index]['headerFields'].includes("account_name") && data[key][index]['headerFields'].includes("account_id");
+				
+				for(itemIndex= 0; itemIndex < data[key][index]['beanCardName'].length; itemIndex++) {
+					var link = data[key][index]['beanCardName'][itemIndex]['name'];
+					var fieldName = data[key][index]['beanCardName'][itemIndex]['fieldName'];
+					if(fieldName == "name") {
+						link = "<a class='kanban-link' href='?action=ajaxui#ajaxUILoc=index.php%3Fmodule%3D"+RECIPIENT_MODULE+"%26action%3DDetailView%26record%3D"+data[key][index]['id']+"'>"+data[key][index]['beanCardName'][itemIndex]['name']+"</a>"
+					} 
+					
+					if(isShowAccountLinks) {
+						if(fieldName == "account_name") {
+							account['account_name'] = data[key][index]['beanCardName'][itemIndex]['name'];
+							continue;
+						} else if(fieldName == "account_id") {
+							account['account_id'] = data[key][index]['beanCardName'][itemIndex]['name'];
+							continue;
+						}
+					}
+					
+					title = title + "<div>" + link + "</div>";
+					
+					
+				}
+				
+				if(account['account_name'] != undefined && account['account_id'] != undefined) {
+					title += "<div><a class='kanban-link' href='?action=ajaxui#ajaxUILoc=index.php%3Fmodule%3DAccounts%26action%3DDetailView%26record%3D"+account['account_id']+"'>"+account['account_name']+"</a></div>"
+				}
+				
+				KanbanTest.addElement("_" + key.replace(/\s+/g, ''),{
+					title: title,
+					idopp:data[key][index]['id'],
+				});
             }
         }
 
@@ -170,6 +195,9 @@
             overflow-x: scroll;
         {literal}
         }
+		.kanban-container {
+			display: flex;
+		}
         .kanban-drag{
         {/literal}
             height: {$bordConfig.kanban.kanbandragHeight}px;
@@ -194,5 +222,72 @@
             width: 100%;
             height: 100%;
         }
+		.kanban-link:hover {
+		  text-decoration: underline !important;
+		}
+
+		.kanban-item.gu-mirror {
+			transform: rotate(4deg) !important;
+			cursor: grabbing !important;
+			cursor: -moz-grabbing;
+			cursor: -webkit-grabbing;
+		}
+
+		.kanban-item div:first-child, .kanban-item div:first-child a {
+		  font-weight: bold !important;
+		  margin-left: 0.1px;
+		  margin-top: 5px;
+		}
+
+		.kanban-item div {
+		  line-height: 13px;
+		  margin-bottom: 10px;
+		}
+
+		.kanban-board header {
+			padding: 20px !important;
+		}
+
+		.kanban-item {
+			padding: 10px 10px 8px 10px !important;
+			margin-bottom: 13px !important;
+			background-color: #fff !important;
+			box-shadow: 0 0px 2px 0 rgba(0,0,0,.14),0 7px 10px -5px rgba(0, 0, 0, 0.4) !important;
+			width: auto;
+			border-radius: 0;
+			border: none !important;
+			cursor: pointer !important;
+		}
+		.kanban-board .kanban-drag {
+		  padding: 20px;
+		  max-height: 500px;
+		  padding-top: 0 !important;
+		  overflow-y: auto;
+		}
+
+		.kanban-board {
+			margin: 0 6px !important;
+		}
+
+		.drag_handler_icon::after {
+		  bottom: 4px !important;
+		}
+
+		.kanban-item {
+			padding: 10px !important;
+		}
+
+		.drag_handler_icon::before {
+		  top: 4px !important;
+		}
+
+		#myKanban {
+			overflow: initial !important;
+		}
+
+		.drag_handler_icon {
+			width: 15px !important;
+			height: 2px !important;
+		}
     </style>
 {/literal}
