@@ -316,6 +316,17 @@ class BOARD extends Basic
                 $ifListForExport
             );
 			
+			if(in_array('currency_id', $this->bordConfModule->mainFields)) {
+				
+				$create_new_list_query['select'] = $create_new_list_query['select'] . ", currencies.symbol currency";
+				$create_new_list_query['from'] = $create_new_list_query['from']. " LEFT JOIN currencies currencies ON currencies.id = opportunities.currency_id";
+			}
+			
+			if(in_array('account_id', $this->bordConfModule->mainFields) && !in_array('account_name', $this->bordConfModule->mainFields)) {
+				$create_new_list_query['select'] = $create_new_list_query['select'] . ", jtl0.account_id account_id";
+				$create_new_list_query['from'] = $create_new_list_query['from']. " LEFT JOIN accounts_opportunities jtl0 ON opportunities.id=jtl0.opportunity_id";
+			}
+			
             $sql = $create_new_list_query['select'] . $create_new_list_query['from'] . $create_new_list_query['where'] . $create_new_list_query['order_by'];
             $sql = $sql . "\n {$LIMIT}";
             $result = $db->query($sql, 1);
@@ -326,20 +337,29 @@ class BOARD extends Basic
 				$dataName = array();
 				$headerFields = $this->bordConfModule->mainFields;
                 foreach ($this->bordConfModule->mainFields as $key => $fieldName) {
-                    
 					if (!empty($row[$fieldName])) {
                         $name .= '/' . $row[$fieldName];
                     } else {
                         $name .= '';
                     }
 					
+					$name = $row[$fieldName];
+					if($fieldName == "currency_id") {
+						if(empty($row['currency']) || $row['currency'] ==  null) {
+							$name = "$";
+						} else {
+							$name = $row['currency'];
+						}
+					}
+					
 					$array = array(
-						'name' => $row[$fieldName], 
+						'name' => $name, 
 						'fieldName' => $fieldName
 					);
 					array_push($dataName, $array);
 					
                 }
+				
                 $data[$row[$this->bordConfModule->stages_field]][] = [
                     'id' => $row['id'],
 					'headerFields' => $headerFields,

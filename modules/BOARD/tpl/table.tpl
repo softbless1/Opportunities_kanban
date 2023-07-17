@@ -33,6 +33,7 @@
     {literal}
     var bordsData=[];
     var counter=0;
+	
     for (var key in stages) {
 
         bordsData[counter]={
@@ -130,43 +131,64 @@
         ajax_request('index.php?module=BOARD&recipient_module=' + RECIPIENT_MODULE + '&action=getData&to_pdf=true','JSON','','setItems');
     }
     function setItems(data) {
+		var counter = 0;
         for (var key in data) {
             for (index = 0; index < data[key].length; ++index) {
 				var title = "";
+				var accountLink = "";
 				var account = [];
-				
+				var isCreated = false;
 				var isShowAccountLinks = data[key][index]['headerFields'].includes("account_name") && data[key][index]['headerFields'].includes("account_id");
 				
+				var isShowAmountAndCurrency = data[key][index]['headerFields'].includes("amount_usdollar") && data[key][index]['headerFields'].includes("currency_id");
+				var amount = [];
+				
 				for(itemIndex= 0; itemIndex < data[key][index]['beanCardName'].length; itemIndex++) {
-					var link = data[key][index]['beanCardName'][itemIndex]['name'];
+					var value = data[key][index]['beanCardName'][itemIndex]['name'] ==  null ?
+						 "" : data[key][index]['beanCardName'][itemIndex]['name'];
 					var fieldName = data[key][index]['beanCardName'][itemIndex]['fieldName'];
-					if(fieldName == "name") {
-						link = "<a class='kanban-link' href='?action=ajaxui#ajaxUILoc=index.php%3Fmodule%3D"+RECIPIENT_MODULE+"%26action%3DDetailView%26record%3D"+data[key][index]['id']+"'>"+data[key][index]['beanCardName'][itemIndex]['name']+"</a>"
-					} 
 					
-					if(isShowAccountLinks) {
-						if(fieldName == "account_name") {
+					
+					if(fieldName == "name") {
+						value = "<a class='kanban-link' href='?action=ajaxui#ajaxUILoc=index.php%3Fmodule%3D"+RECIPIENT_MODULE+"%26action%3DDetailView%26record%3D"+data[key][index]['id']+"'>"+data[key][index]['beanCardName'][itemIndex]['name']+"</a>"
+					} else if(fieldName == "account_name") {
 							account['account_name'] = data[key][index]['beanCardName'][itemIndex]['name'];
-							continue;
-						} else if(fieldName == "account_id") {
+					} else if(fieldName == "account_id" ) {
 							account['account_id'] = data[key][index]['beanCardName'][itemIndex]['name'];
-							continue;
-						}
+					} else if(fieldName == "amount_usdollar") {
+							amount['amount_usdollar'] = format(data[key][index]['beanCardName'][itemIndex]['name']);
+							
 					}
 					
-					title = title + "<div>" + link + "</div>";
-					
+					if((isShowAccountLinks) && (fieldName == "account_name" || fieldName == "account_id")) {
+						if((account['account_name'] != undefined && account['account_id'] != undefined) && isCreated == false) {
+							accountLink = "<div><a class='kanban-link' href='?action=ajaxui#ajaxUILoc=index.php%3Fmodule%3DAccounts%26action%3DDetailView%26record%3D"+account['account_id']+"'>"+account['account_name']+"</a></div>";
+							title = title + accountLink;
+							isCreated = true;
+						} else {
+							continue;
+						}
+					} else if((isShowAmountAndCurrency) && fieldName == "amount_usdollar") {
+						if(amount['amount_usdollar'] != undefined) {
+							 var formattedAmount = "<div>"+amount['amount_usdollar']+"</div>";
+							title = title + formattedAmount;
+						} else {
+							continue;
+						}
+					} else {
+						title = title + "<div>" + value + "</div>";
+					}	
 					
 				}
-				
-				if(account['account_name'] != undefined && account['account_id'] != undefined) {
-					title += "<div><a class='kanban-link' href='?action=ajaxui#ajaxUILoc=index.php%3Fmodule%3DAccounts%26action%3DDetailView%26record%3D"+account['account_id']+"'>"+account['account_name']+"</a></div>"
-				}
-				
 				KanbanTest.addElement("_" + key.replace(/\s+/g, ''),{
 					title: title,
 					idopp:data[key][index]['id'],
+					class: "colors-"+counter
 				});
+				if(counter == 10) {
+					counter=0;
+				}
+				counter++;
             }
         }
 
@@ -185,7 +207,11 @@
         });
 
     }
-
+	
+		function format(angka){
+			return "Rp "+new Intl.NumberFormat("de-DE").format(angka);
+	}
+		
 </script>
     <style>
         #myKanban{
