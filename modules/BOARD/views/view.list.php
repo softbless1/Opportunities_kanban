@@ -32,7 +32,7 @@ class BOARDViewList extends ViewList
 
 
 
-            $this->lv->ss->assign("STAGES", $seedKanbanBoard->getStages());
+            $this->lv->ss->assign("STAGES", $seedKanbanBoard->getStages($_REQUEST));
             //stopped hear
 
             $this->lv->ss->assign("bordConfig", $seedKanbanBoard->bordConfModule->getValueArray());

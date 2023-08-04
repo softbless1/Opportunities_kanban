@@ -89,9 +89,15 @@ class BOARD extends Basic
     /**
      * @return JSON Sales Stage from Opportunities
      */
-    public function getStages()
+    public function getStages($request,$limitMin=null,$limitMax= null)
     {
         global $app_list_strings;
+		
+	    global $db;
+		$stages_data = self::getDataOpp($request);
+		$result = $db->query($sql, 1);
+		$data = [];
+		$row = json_encode($db->fetchByAssoc($result));
         $this->checkOrInitBordFonfModule();
         $stages = [];
         if(!empty($this->bordConfModule->stages) && !empty($this->bordConfModule->stages_field)) {
@@ -105,14 +111,20 @@ class BOARD extends Basic
         if (!empty($this->bordConfModule->stages) && $countStagesInConfig == $countStagesInAppList) {
             for ($i = 0; $i < count($this->bordConfModule->stages); $i++) {
                 if($this->bordConfModule->stages[$i]['display']) {
-                    $stages[$this->bordConfModule->stages[$i]['name']] = $app_list_strings[$this->recipientBean->field_defs[$this->bordConfModule->stages_field]['options']][$this->bordConfModule->stages[$i]['name']];
+					$str = $app_list_strings[$this->recipientBean->field_defs[$this->bordConfModule->stages_field]['options']][$this->bordConfModule->stages[$i]['name']] . " (". count($stages_data[$this->bordConfModule->stages[$i]['name']]) . ")";
+                    $stages[$this->bordConfModule->stages[$i]['name']] = $str;
                 }
             }
         } else{
             header('Location: index.php?module=BOARD&action=boardSettings&recipient_module='. $this->boardForModuleKey .'#'.$this->boardForModuleKey);
         }
+		
         return json_encode($stages);
     }
+	
+	public function getStagesWithTotaRecords($request) {
+		
+	}
 
     public function getOppData(){
 
@@ -258,11 +270,53 @@ class BOARD extends Basic
      * @param array $whereArr
      * @return array
      */
-    public function getDataOpp($request,$limitMin=null,$limitMax= null,User $user){
-        require_once 'modules/BOARD/BOARD_USER_CONFIG.php';
+    public function getDataOpp($request,$limitMin=null,$limitMax= null){
+		    global $db;
+			$sql = self::getDataQuery($request);
+            $result = $db->query($sql, 1);
+            $data = [];
+            while ($row = $db->fetchByAssoc($result)) {
+                $name = '';
+				$dataName = array();
+				$headerFields = $this->bordConfModule->mainFields;
+                foreach ($this->bordConfModule->mainFields as $key => $fieldName) {
+					if (!empty($row[$fieldName])) {
+                        $name .= '/' . $row[$fieldName];
+                    } else {
+                        $name .= '';
+                    }
+					
+					$name = $row[$fieldName];
+					if($fieldName == "currency_id") {
+						if(empty($row['currency']) || $row['currency'] ==  null) {
+							$name = "$";
+						} else {
+							$name = $row['currency'];
+						}
+					}
+					
+					$array = array(
+						'name' => $name, 
+						'fieldName' => $fieldName
+					);
+					array_push($dataName, $array);
+					
+                }
+				
+                $data[$row[$this->bordConfModule->stages_field]][] = [
+                    'id' => $row['id'],
+					'headerFields' => $headerFields,
+                    'beanCardName' => $dataName,
+                    'stage' => $row[$this->bordConfModule->stages_field],
+                ];
+            }
+            return $data;
+    }
+	
+	public function getDataQuery($request,$limitMin=null,$limitMax= null) {
+		require_once 'modules/BOARD/BOARD_USER_CONFIG.php';
         require_once 'modules/BOARD/helpers/BoardConfModuleToBeanRequest.php';
         $whereArr = isset($request['where']) ? $request['where'] : [];
-        global $db;
         if(!empty($request['recipient_module'])) {
 
             $this->setModule($request['recipient_module']);
@@ -328,49 +382,11 @@ class BOARD extends Basic
 			}
 			
             $sql = $create_new_list_query['select'] . $create_new_list_query['from'] . $create_new_list_query['where'] . $create_new_list_query['order_by'];
-            $sql = $sql . "\n {$LIMIT}";
-            $result = $db->query($sql, 1);
-            $data = [];
-			
-            while ($row = $db->fetchByAssoc($result)) {
-                $name = '';
-				$dataName = array();
-				$headerFields = $this->bordConfModule->mainFields;
-                foreach ($this->bordConfModule->mainFields as $key => $fieldName) {
-					if (!empty($row[$fieldName])) {
-                        $name .= '/' . $row[$fieldName];
-                    } else {
-                        $name .= '';
-                    }
-					
-					$name = $row[$fieldName];
-					if($fieldName == "currency_id") {
-						if(empty($row['currency']) || $row['currency'] ==  null) {
-							$name = "$";
-						} else {
-							$name = $row['currency'];
-						}
-					}
-					
-					$array = array(
-						'name' => $name, 
-						'fieldName' => $fieldName
-					);
-					array_push($dataName, $array);
-					
-                }
-				
-                $data[$row[$this->bordConfModule->stages_field]][] = [
-                    'id' => $row['id'],
-					'headerFields' => $headerFields,
-                    'beanCardName' => $dataName,
-                    'stage' => $row[$this->bordConfModule->stages_field],
-                ];
-            }
-            return $data;
-        }
-    }
-
+            return $sql = $sql . "\n {$LIMIT}";
+		   
+		}
+	}
+	
     /**
      * @param string $moduleName
      * @throws Exception
